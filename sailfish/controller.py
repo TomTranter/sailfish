@@ -290,7 +290,7 @@ class LBSimulationController(object):
             choices=['batch', 'visualization', 'benchmark'], default='batch'),
         group.add_argument('--every',
             help='save/visualize simulation results every N iterations ',
-            metavar='N', type=int, default=100)
+            metavar='N', type=int, default=1000)
         group.add_argument('--from', dest='from_',
             help='save/visualize simulation results from N iterations ', metavar='N',
             type=int, default=0)
