@@ -104,7 +104,7 @@ class CylinderSimulation(LBIBMFluidSim):
         if mod == every - 1:
             self.need_sync_flag = True
         elif mod == 0:
-            ly = self.config.lat_ny / 2
+            ly = int(self.config.lat_ny / 2)
             lx = int(self.config.lat_nx * 0.75)
             print(self.iteration, self.vy[ly, lx], self.vx[ly, lx])
 

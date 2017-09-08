@@ -41,7 +41,8 @@ class Fluid2DVis(vis.FluidVis):
 
         # XXX
         self._vis_config.field = 1
-        width, height = self.size
+        width = self.size[0]
+        height = self.size[1]
         subdomain = self._subdomains[self._vis_config.subdomain]
         buffer = np.zeros((height, width))
         buffer.ravel()[:] = subdomain.vis_buffer[:]
@@ -59,7 +60,8 @@ class Fluid2DVis(vis.FluidVis):
 
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
-        width, height = self.size
+        width = self.size[0]
+        height = self.size[1]
         buffer = np.zeros((height, width))
         self.plot = self.ax.imshow(buffer, origin='lower')
         self.fig.colorbar(self.plot)
