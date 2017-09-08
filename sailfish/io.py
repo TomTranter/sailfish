@@ -139,7 +139,7 @@ class VisualizationWrapper(LBOutput):
             self.subdomain.id == self._vis_config.subdomain):
             self._vis_config.iteration = i
             requested_field = self._vis_config.field
-            self._vis_config.field_name = self._field_names[requested_field]
+            self._vis_config.field_name = self._field_names[requested_field].encode()
 
             if requested_field < self._scalar_len:
                 name = self._scalar_names[requested_field]
@@ -151,6 +151,7 @@ class VisualizationWrapper(LBOutput):
             else:
                 requested_field -= self._scalar_len + self._vis_len
                 idx = requested_field / self._dim
+                idx = np.int(idx)
                 name = self._vector_names[idx]
                 component = requested_field % self._dim
                 field = self._output._vector_fields[name][component]
@@ -221,7 +222,7 @@ class VTKOutput(LBOutput):
         LBOutput.__init__(self, config, subdomain_id)
         self.digits = filename_iter_digits(config.max_iters)
 
-    def save(self, i):
+    def save_old(self, i):
         self.mask_nonfluid_nodes()
         os.environ['ETS_TOOLKIT'] = 'null'
         from tvtk.api import tvtk
@@ -262,6 +263,25 @@ class VTKOutput(LBOutput):
         write_data(idata, fname)
         #w = tvtk.XMLImageDataWriter(input=idata, file_name=fname)
         #w.write()
+    
+    def save(self, i):
+        from evtk.hl import imageToVTK
+        fname = str(self.basename)+'_'+str(self.digits)+'_'+str(self.subdomain_id)+'_'+str(i)
+        print('Saving file:', fname)
+        cell_data = {}
+        dim = 0
+        for name, field in self._scalar_fields.items():
+            if dim == 0:
+                dim = len(field.shape)
+            cell_data[name]=np.asarray(field).copy()
+        for name, field in self._vector_fields.items():
+            for elem in range(dim):
+                cell_data[name+'_'+str(elem)]=np.asarray(field[elem]).copy()
+
+        #fp = os.path.join(os.path.dirname(
+        #        os.path.realpath(__file__)), fname)
+        imageToVTK(fname, cellData = cell_data)
+        del cell_data
 
     # TODO: Implement this function.
     def dump_dists(self, dists, i):
