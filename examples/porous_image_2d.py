@@ -22,24 +22,37 @@ from sailfish.lb_single import LBFluidSim, LBForcedSim
 import time
 import csv
 from scipy.misc import imread
+import scipy.ndimage as spim
+import os
 # No. neighbor interactions
-mypath='/home/tom/test_images/ml/Testing'
-from os import listdir
-from os.path import isfile, join
-onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
-file=None
+mypath='/home/moose/Dropbox/Projects/ML Permeability'
 all_perm = []
 all_tau = []
 
-def save_data(data=None):
-    with open('sailfish_data.csv', 'a', newline='\n') as csvfile:
+def percolating_cluster(image, fluid=1, axis=None):
+    fluid_im = image == fluid
+    labels, N = spim.label(fluid_im)
+    x = []
+    y = []
+    for lab in range(N)[1:]:
+        if lab in labels[:, 0] and lab in labels[:, -1]:
+            x.append(lab)
+        if lab in labels[0, :] and lab in labels[-1, :]:
+            y.append(lab)
+    if axis == 0:
+        return len(x) > 0
+    elif axis == 1:
+        return len(y) > 0
+    else:
+        return len(x) > 0 and len(y) > 0
+
+def save_data(prefix='test', data=None):
+    filename = prefix + 'sailfish_data.csv'
+    with open(filename, 'a', newline='\n') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter=',',
                                 quotechar='|', quoting=csv.QUOTE_MINIMAL)
         csvwriter.writerow(data)
-# File Path
-save_data([mypath])
-# Header
-save_data(['file', 'porosity','perm', 'tau', 'iters', 'convergence'])
+
 
 class ExternalSubdomain(Subdomain2D):
     def initial_conditions(self, sim, hx, hy):
@@ -90,13 +103,14 @@ class ExternalSimulation(LBFluidSim, LBForcedSim):
         global file
         if not config.geometry:
             return
-        try:
-            config.geometry = np.load(file)
-        except:
-            try:
-                config.geometry = cls.read_jpeg(file)
-            except:
-                print("FILE TYPE NOT VALID")
+        config.geometry = file
+#        try:
+#            config.geometry = np.load(file)
+#        except:
+#            try:
+#                config.geometry = cls.read_jpeg(file)
+#            except:
+#                print("FILE TYPE NOT VALID")
         # Override lattice size based on the geometry file.
         wall_map = ~config.geometry.astype(bool)
         cls.phi = 1-(np.sum(wall_map)/np.size(wall_map))
@@ -130,6 +144,8 @@ class ExternalSimulation(LBFluidSim, LBForcedSim):
         
     def after_step(self, runner):
         global file
+        global file_name
+        global data_set
         every_n = 250
         
         # Request the velocity field one step before actual processing.
@@ -170,7 +186,8 @@ class ExternalSimulation(LBFluidSim, LBForcedSim):
 #                     perm=data_table_np[:, 3],
 #                     tau=data_table_np[:, 4])
             print('SAVING DATA')
-            save_data([file.split('/')[-1].split('.')[0],
+            save_data(data_set.split('.')[0],
+                      [file_name,
                        str(self.phi),
                        str(self._calc_perm(runner)),
                        str(self._calc_tau(runner)),
@@ -179,15 +196,29 @@ class ExternalSimulation(LBFluidSim, LBForcedSim):
             
 
     def __init__(self, config):
+        global data_set
         super(ExternalSimulation, self).__init__(config)
         self.add_body_force((self.F, 0.0))
+        # File Path
+        save_data(data_set.split('.')[0], [mypath])
+        # Header
+        save_data(data_set.split('.')[0], ['file', 'porosity','perm', 'tau', 'iters', 'convergence'])
 
 
 if __name__ == '__main__':
-    for f in onlyfiles:
-        file= join(mypath, f)
-        print('Processing', file)
-        ctrl = LBSimulationController(ExternalSimulation)
-        st = time.time()
-        ctrl.run()
-        print('Sim time:', time.time()-st)
+
+    for data_set in ['constantbtestingset.npz',
+                     'constantbtrainingset.npz']:
+        print('Processing Data Set', data_set)
+        input_data = np.load(os.path.join(mypath,data_set))
+        for file_name in input_data.files:
+            #file= join(mypath, f)
+            file = input_data[file_name]
+            if percolating_cluster(file):
+                print('Processing File', file_name)
+                ctrl = LBSimulationController(ExternalSimulation)
+                st = time.time()
+                ctrl.run()
+                print('Sim time:', time.time()-st)
+            else:
+                print('Skipping', file_name)
