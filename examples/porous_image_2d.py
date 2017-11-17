@@ -199,10 +199,6 @@ class ExternalSimulation(LBFluidSim, LBForcedSim):
         global data_set
         super(ExternalSimulation, self).__init__(config)
         self.add_body_force((self.F, 0.0))
-        # File Path
-        save_data(data_set.split('.')[0], [mypath])
-        # Header
-        save_data(data_set.split('.')[0], ['file', 'porosity','perm', 'tau', 'iters', 'convergence'])
 
 
 if __name__ == '__main__':
@@ -211,6 +207,10 @@ if __name__ == '__main__':
                      'constantbtrainingset.npz']:
         print('Processing Data Set', data_set)
         input_data = np.load(os.path.join(mypath,data_set))
+        # File Path
+        save_data(data_set.split('.')[0], [mypath])
+        # Header
+        save_data(data_set.split('.')[0], ['file', 'porosity','perm', 'tau', 'iters', 'convergence'])
         for file_name in input_data.files:
             #file= join(mypath, f)
             file = input_data[file_name]
